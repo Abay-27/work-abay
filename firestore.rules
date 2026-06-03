@@ -1,0 +1,252 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId
+    // Fields:
+    //   - email: string (required)
+    //   - role: string (required, 'super_admin' | 'content_manager' | 'order_manager' | 'customer' | 'admin' | 'delivery_person' | 'merchant')
+    //
+    // Collection: orders
+    // Document ID: orderId
+    // Fields:
+    //   - customerName: string (required, < 100 chars)
+    //   - customerPhone: string (required, < 20 chars)
+    //   - customerEmail: string (required)
+    //   - items: list (required, < 50 items)
+    //   - totalAmount: number (required, positive)
+    //   - status: string (required, 'pending' | 'verified' | 'completed')
+    //   - paymentMethod: string (required, 'Telebirr' | 'CBE')
+    //   - createdAt: timestamp (required)
+    //   - merchantIds: list (optional)
+    //   - commissionAmount: number (optional)
+    //   - merchantCommissions: list (optional)
+    //
+    // Collection: products
+    // Document ID: productId
+    // Fields:
+    //   - name: string
+    //   - nameAm: string
+    //   - price: number
+    //   - costPrice: number
+    //   - description: string
+    //   - descriptionAm: string
+    //   - category: string
+    //   - categoryAm: string
+    //   - image: string
+    //   - stock: integer
+    //   - soldCount: integer
+    //   - merchantId: string (optional)
+    //   - merchantName: string (optional)
+    //
+    // Collection: reviews
+    // Document ID: reviewId
+    // Fields:
+    //   - productId: string (required)
+    //   - userId: string (required)
+    //   - userName: string (required)
+    //   - rating: number (required, 1-5)
+    //   - comment: string (required, < 1000 chars)
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() &&
+        (
+          (request.auth.token.email.lower() == "abaygebeyaw1996@gmail.com") ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'super_admin' &&
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('active', true) == true)
+        );
+    }
+
+    function isContentManager() {
+      return isAuthenticated() &&
+        (isSuperAdmin() ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'content_manager' &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('active', true) == true));
+    }
+
+    function isOrderManager() {
+      return isAuthenticated() &&
+        (isSuperAdmin() ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'order_manager' &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('active', true) == true));
+    }
+
+    function isDeliveryPerson() {
+      return isAuthenticated() &&
+        (isSuperAdmin() ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'delivery_person' &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('active', true) == true));
+    }
+
+    function isMerchant() {
+      return isAuthenticated() &&
+         (isSuperAdmin() ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant' &&
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('active', true) == true));
+    }
+
+    function isAdmin() {
+      return isSuperAdmin() || isContentManager() || isOrderManager() || isDeliveryPerson() ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('active', true) == true);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.size() >= 3 && email.contains("@");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidProduct(data) {
+      return hasRequiredFields(['name', 'price', 'stock', 'soldCount']) &&
+             data.name is string && data.name.size() < 200 &&
+             data.price is number && data.price >= 0 &&
+             data.stock is number &&
+             data.soldCount is number &&
+             (!('nameAm' in data) || (data.nameAm is string && data.nameAm.size() < 200)) &&
+             (!('merchantId' in data) || data.merchantId is string) &&
+             (!('merchantName' in data) || data.merchantName is string);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return (data.get('email', '') is string) && 
+             data.get('role', 'customer') in ['super_admin', 'content_manager', 'order_manager', 'customer', 'admin', 'delivery_person', 'merchant'] &&
+             (!('active' in data) || data.active is bool) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100)) &&
+             (!('phoneNumber' in data) || (data.phoneNumber is string && data.phoneNumber.size() < 30)) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp) &&
+             (!('createdAt' in data) || data.createdAt is timestamp) &&
+             (!('address' in data) || (data.address is map && 
+               (!('city' in data.address) || data.address.city is string) &&
+               (!('area' in data.address) || data.address.area is string) &&
+               (!('street' in data.address) || data.address.street is string) &&
+               (!('houseNumber' in data.address) || data.address.houseNumber is string)
+             )) &&
+             (!('merchantInfo' in data) || (data.merchantInfo is map &&
+               (!('storeName' in data.merchantInfo) || data.merchantInfo.storeName is string) &&
+               (!('tinNumber' in data.merchantInfo) || data.merchantInfo.tinNumber is string) &&
+               (!('status' in data.merchantInfo) || data.merchantInfo.status in ['pending', 'approved', 'declined']) &&
+               (!('declineReason' in data.merchantInfo) || data.merchantInfo.declineReason is string)
+             ));
+    }
+
+    function isValidOrder(data) {
+      return hasRequiredFields(['customerName', 'customerPhone', 'customerEmail', 'items', 'totalAmount', 'status', 'paymentMethod', 'createdAt', 'customerCity', 'customerArea', 'customerAddress']) &&
+             data.customerName is string &&
+             data.customerPhone is string &&
+             data.customerEmail is string &&
+             data.items is list &&
+             data.totalAmount is number &&
+             data.status is string &&
+             data.paymentMethod is string &&
+             data.createdAt != null &&
+             (!('commissionAmount' in data) || data.commissionAmount is number) &&
+             (!('merchantCommissions' in data) || data.merchantCommissions is list) &&
+             (!('merchantIds' in data) || data.merchantIds is list);
+    }
+
+    function isValidReview(data) {
+      return hasRequiredFields(['productId', 'userId', 'userName', 'rating', 'comment', 'createdAt']) &&
+             data.productId is string &&
+             data.userId is string &&
+             data.userName is string && data.userName.size() < 100 &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             data.comment is string && data.comment.size() < 1000 &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Match Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isSuperAdmin();
+      allow list: if isSuperAdmin();
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && 
+                    (request.resource.data.role == 'customer' || isSuperAdmin()) &&
+                    (request.resource.data.get('active', true) == true || isSuperAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    (
+                      (isOwner(userId) && 
+                       request.resource.data.role == resource.data.role && 
+                       request.resource.data.get('active', true) == resource.data.get('active', true)) || 
+                      isSuperAdmin()
+                    );
+    }
+
+    match /orders/{orderId} {
+      allow get: if true;
+      allow list: if isAuthenticated() && (resource.data.customerUid == request.auth.uid || isAdmin() || (isMerchant() && request.auth.uid in resource.data.get('merchantIds', [])));
+      allow create: if isValidOrder(request.resource.data);
+      allow update: if isOrderManager() || isDeliveryPerson() || 
+                      (isMerchant() && request.auth.uid in resource.data.get('merchantIds', [])) ||
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) && request.resource.data.status == 'completed' && resource.data.customerUid == request.auth.uid);
+      allow delete: if isSuperAdmin();
+    }
+
+    match /products/{productId} {
+      allow read, list: if true;
+      allow create: if isContentManager() || isMerchant();
+      allow update: if (isContentManager() && isValidProduct(request.resource.data)) || 
+                      (isMerchant() && resource.data.merchantId == request.auth.uid && isValidProduct(request.resource.data)) ||
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock', 'soldCount']) &&
+                       request.resource.data.stock is number &&
+                       request.resource.data.soldCount is number);
+      allow delete: if isContentManager() || (isMerchant() && resource.data.merchantId == request.auth.uid);
+    }
+
+    match /reviews/{reviewId} {
+      allow read, list: if true;
+      allow create: if isAuthenticated() && 
+                    request.resource.data.userId == request.auth.uid &&
+                    isValidReview(request.resource.data);
+      allow update, delete: if isSuperAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    match /stats/{docId} {
+      allow read: if true;
+      allow write: if (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['happyCustomers'])) ||
+                      (isAuthenticated() && request.resource.data.keys().hasOnly(['happyCustomers', 'verifiedSellers']));
+    }
+
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "A customer order containing items and payment info.",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string", "description": "The name of the customer." },
+        "customerPhone": { "type": "string", "description": "The phone number of the customer." },
+        "customerEmail": { "type": "string", "description": "The email of the customer." },
+        "customerUid": { "type": "string", "description": "The UID of the authenticated customer." },
+        "merchantIds": { "type": "array", "items": { "type": "string" }, "description": "List of merchant UIDs involved in this order." },
+        "commissionAmount": { "type": "number", "description": "Total commission for the platform." },
+        "merchantCommissions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "merchantId": { "type": "string" },
+              "merchantName": { "type": "string" },
+              "productId": { "type": "string" },
+              "productName": { "type": "string" },
+              "itemTotal": { "type": "number" },
+              "commission": { "type": "number" },
+              "quantity": { "type": "integer" }
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "productId": { "type": "string" },
+              "name": { "type": "string" },
+              "quantity": { "type": "integer" },
+              "price": { "type": "number" },
+              "merchantId": { "type": "string" },
+              "merchantName": { "type": "string" },
+              "selectedVariants": {
+                "type": "object",
+                "additionalProperties": { "type": "string" },
+                "description": "e.g., { 'Size': 'M', 'Color': 'Red' }"
+              }
+            }
+          }
+        },
+        "totalAmount": { "type": "number", "description": "The total price of the order." },
+        "status": { "type": "string", "enum": ["pending", "processing", "verified", "shipped", "out_for_delivery", "delivered", "completed", "declined"], "description": "The current status of the order." },
+        "paymentMethod": { "type": "string", "enum": ["Telebirr", "CBE"], "description": "The payment method used." },
+        "receiptImage": { "type": "string", "description": "URL of the uploaded payment receipt image." },
+        "estimatedDelivery": { "type": "string", "format": "date-time", "description": "The estimated delivery date and time." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the order was placed." }
+      },
+      "required": ["customerName", "customerPhone", "items", "totalAmount", "status", "paymentMethod", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile with roles and contact information.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "address": {
+          "type": "object",
+          "properties": {
+            "city": { "type": "string" },
+            "area": { "type": "string" },
+            "street": { "type": "string" },
+            "houseNumber": { "type": "string" }
+          }
+        },
+        "role": { "type": "string", "enum": ["customer", "admin", "content_manager", "order_manager", "super_admin", "delivery_person", "merchant"] },
+        "merchantInfo": {
+          "type": "object",
+          "properties": {
+            "storeName": { "type": "string" },
+            "phoneNumber": { "type": "string" },
+            "storeDescription": { "type": "string" },
+            "address": { "type": "string" },
+            "tinNumber": { "type": "string" },
+            "registrationDocUrl": { "type": "string" },
+            "businessPictureUrl": { "type": "string" },
+            "status": { "type": "string", "enum": ["pending", "approved", "declined"] },
+            "appliedAt": { "type": "string", "format": "date-time" },
+            "reviewedAt": { "type": "string", "format": "date-time" },
+            "reviewedBy": { "type": "string" },
+            "declineReason": { "type": "string" }
+          }
+        },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "A product with stock and sales tracking.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "nameAm": { "type": "string" },
+        "price": { "type": "number" },
+        "costPrice": { "type": "number" },
+        "description": { "type": "string" },
+        "descriptionAm": { "type": "string" },
+        "category": { "type": "string" },
+        "categoryAm": { "type": "string" },
+        "image": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" }, "description": "Gallery images for the product." },
+        "variants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "description": "e.g., Size, Color" },
+              "options": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "stock": { "type": "integer", "description": "Number of items in stock." },
+        "soldCount": { "type": "integer", "description": "Number of items sold." },
+        "merchantId": { "type": "string", "description": "UID of the merchant who owns this product." },
+        "merchantName": { "type": "string", "description": "Name of the merchant who owns this product." }
+      },
+      "required": ["name", "nameAm", "price", "stock", "soldCount"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A customer review for a product.",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "rating": { "type": "integer" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productId", "userId", "userName", "rating", "comment", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of orders."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles."
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of products with inventory data."
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Collection of product reviews."
+    }
+  }
+}

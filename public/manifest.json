@@ -1,0 +1,23 @@
+{
+  "name": "Abay Bedding Solutions",
+  "short_name": "Abay Bedding",
+  "description": "Premium bedding solutions in Bahir Dar. Luxury linens, duvet covers, plush pillows, and everything you need for a perfect night's sleep.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=192&h=192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=512&h=512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

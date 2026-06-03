@@ -1,0 +1,18 @@
+102:import { db, auth, signIn, logOut, handleFirestoreError, OperationType, storage, sendEmailVerification } from './firebase';
+105:import { useAuthState } from 'react-firebase-hooks/auth';
+407:  const [user] = useAuthState(auth);
+1078:      console.log("Saving product. Current user:", auth.currentUser?.email, "UID:", auth.currentUser?.uid);
+1080:      if (!auth.currentUser) {
+1167:        merchantId: editingProduct ? editingProduct.merchantId : auth.currentUser.uid,
+1168:        merchantName: editingProduct ? editingProduct.merchantName : (userProfile?.merchantInfo?.storeName || userProfile?.displayName || auth.currentUser.displayName || 'ABAY')
+1664:      if (error.code === 'auth/network-request-failed') {
+1666:      } else if (error.code === 'auth/popup-blocked') {
+1668:      } else if (error.code === 'auth/popup-closed-by-user') {
+1670:      } else if (error.code === 'auth/cancelled-popup-request') {
+1672:      } else if (error.code === 'auth/internal-error') {
+1687:    if (!auth.currentUser) return;
+1689:      await sendEmailVerification(auth.currentUser);
+1980:              if (uploadErr.code === 'storage/unauthorized') {
+5017:                <li>Legal authorities if required by law or to protect our rights.</li>
+5024:                We implement a variety of security measures to maintain the safety of your personal information. We use Firebase, a secure platform provided by Google, for data storage and authentication.
+5075:                All orders are subject to acceptance and availability. We accept payments via Telebirr and Commercial Bank of Ethiopia (CBE). By placing an order, you represent that you are authorized to use the chosen payment method.

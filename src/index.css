@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-brand-primary: #172554; /* blue-950 */
+  --color-brand-secondary: #ffffff;
+  --color-brand-accent: #f97316; /* orange-500 */
+  --color-brand-teal: #0d9488; /* teal-600 */
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+  }
+  
+  h1, h2, h3, h4 {
+    @apply font-sans font-bold tracking-tight text-brand-primary;
+  }
+}
+
+.glass {
+  @apply bg-white/80 backdrop-blur-md border-b border-slate-200/50;
+}
+
+.btn-primary {
+  @apply px-8 py-3 bg-slate-900 text-white font-medium transition-all hover:bg-slate-800 disabled:opacity-50 rounded-lg;
+}
+
+.btn-secondary {
+  @apply px-8 py-3 bg-white text-slate-900 border border-slate-200 font-medium transition-all hover:bg-slate-50 rounded-lg;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

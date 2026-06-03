@@ -1,0 +1,9 @@
+{
+  "name": "Work_Abay Mart",
+  "description": "Premium B2C marketplace in Ethiopia. Shop high-quality products from verified local merchants with secure payments and nationwide delivery. Your one-stop shop for electronics, apparel, and more.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
